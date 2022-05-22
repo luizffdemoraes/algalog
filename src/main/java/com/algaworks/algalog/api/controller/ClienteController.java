@@ -1,31 +1,62 @@
 package com.algaworks.algalog.api.controller;
 
 
-import ch.qos.logback.core.net.server.Client;
 import com.algaworks.algalog.domain.model.Cliente;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.algaworks.algalog.domain.repository.ClienteRepository;
+import com.algaworks.algalog.domain.service.CatalogoClienteService;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
+import javax.validation.Valid;
 import java.util.List;
 
+@AllArgsConstructor
 @RestController
+@RequestMapping("/clientes")
 public class ClienteController {
 
-    @GetMapping("/clientes")
+    private ClienteRepository clienteRepository;
+    private CatalogoClienteService catalogoClienteService;
+
+    @GetMapping
     public List<Cliente> listar() {
-       Cliente cliente1 = new Cliente();
-       cliente1.setId(1L);
-       cliente1.setNome("João");
-       cliente1.setTelefone("34 99999-1111");
-       cliente1.setEmail("joaodascouves@algaworks.com");
+        return clienteRepository.findAll();
+    }
 
-        Cliente cliente2 = new Cliente();
-        cliente2.setId(2L);
-        cliente2.setNome("Maria");
-        cliente2.setTelefone("11 97777-2222");
-        cliente2.setEmail("mariadasilva@algaworks.com");
+    @GetMapping("/{clienteId}")
+    public ResponseEntity<Cliente> buscar(@PathVariable Long clienteId) {
+        return clienteRepository.findById(clienteId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-        return Arrays.asList(cliente1, cliente2);
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Cliente adicionar(@Valid @RequestBody Cliente cliente) {
+        return catalogoClienteService.salvar(cliente);
+    }
+
+    @PutMapping("/{clienteId}")
+    public ResponseEntity<Cliente> atualizar(@PathVariable Long clienteId, @RequestBody Cliente cliente) {
+        if (!clienteRepository.existsById(clienteId)) {
+            return ResponseEntity.notFound().build();
+        }
+        cliente.setId(clienteId);
+        cliente = catalogoClienteService.salvar(cliente);
+
+        return ResponseEntity.ok(cliente);
+    }
+
+    @DeleteMapping("/{clienteId}")
+    public ResponseEntity<Void> remover(@PathVariable Long clienteId) {
+        if (!clienteRepository.existsById(clienteId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        catalogoClienteService.excluir(clienteId);
+        return ResponseEntity.noContent().build();
     }
 }
+
